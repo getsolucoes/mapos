@@ -279,32 +279,32 @@ class Mapos_model extends CI_Model
 
         $sql = "
             SELECT
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 1) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JAN_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 1) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_JAN_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 2) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_FEV_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 2) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_FEV_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 3) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_MAR_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 3) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_MAR_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 4) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_ABR_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 4) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_ABR_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 5) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_MAI_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 5) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_MAI_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 6) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JUN_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 6) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_JUN_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 7) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JUL_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 7) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_JUL_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 8) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_AGO_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 8) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_AGO_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 9) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_SET_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 9) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_SET_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 10) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_OUT_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 10) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_OUT_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 11) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_NOV_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 11) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_NOV_DES,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 12) AND baixado = 1 AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_DEZ_REC,
-                SUM(CASE WHEN (EXTRACT(MONTH FROM data_pagamento) = 12) AND baixado = 1 AND tipo = 'despesa' THEN valor END) AS VALOR_DEZ_DES
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 1) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100)) END) AS VALOR_JAN_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 1) AND tipo = 'despesa' THEN valor END) AS VALOR_JAN_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 2) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_FEV_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 2) AND tipo = 'despesa' THEN valor END) AS VALOR_FEV_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 3) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_MAR_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 3) AND tipo = 'despesa' THEN valor END) AS VALOR_MAR_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 4) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_ABR_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 4) AND tipo = 'despesa' THEN valor END) AS VALOR_ABR_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 5) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_MAI_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 5) AND tipo = 'despesa' THEN valor END) AS VALOR_MAI_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 6) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JUN_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 6) AND tipo = 'despesa' THEN valor END) AS VALOR_JUN_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 7) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_JUL_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 7) AND tipo = 'despesa' THEN valor END) AS VALOR_JUL_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 8) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_AGO_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 8) AND tipo = 'despesa' THEN valor END) AS VALOR_AGO_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 9) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_SET_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 9) AND tipo = 'despesa' THEN valor END) AS VALOR_SET_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 10) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_OUT_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 10) AND tipo = 'despesa' THEN valor END) AS VALOR_OUT_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 11) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_NOV_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 11) AND tipo = 'despesa' THEN valor END) AS VALOR_NOV_DES,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 12) AND tipo = 'receita' THEN valor - (IF(tipo_desconto = 'real', desconto, (desconto * valor) / 100))  END) AS VALOR_DEZ_REC,
+                SUM(CASE WHEN (EXTRACT(MONTH FROM data_vencimento) = 12) AND tipo = 'despesa' THEN valor END) AS VALOR_DEZ_DES
             FROM lancamentos
-            WHERE EXTRACT(YEAR FROM data_pagamento) = ?
+            WHERE EXTRACT(YEAR FROM data_vencimento) = ?
         ";
         if ($this->db->query($sql, [intval($numbersOnly)]) !== false) {
             return $this->db->query($sql, [intval($numbersOnly)])->row();
