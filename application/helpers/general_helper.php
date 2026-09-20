@@ -104,6 +104,7 @@ if (! function_exists('printSafeHtml')) {
 
         if ($purifier === null) {
             $config = HTMLPurifier_Config::createDefault();
+            $config->set('Cache.SerializerPath', APPPATH . 'cache/htmlpurifier');
             $purifier = new HTMLPurifier($config);
         }
 
