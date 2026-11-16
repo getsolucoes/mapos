@@ -120,23 +120,12 @@ class MercadoPago extends BasePaymentGateway
         if ($e instanceof \MercadoPago\Exceptions\MPApiException) {
             $content = $e->getApiResponse()->getContent();
 
-            if (is_object($content)) {
-                $content = json_decode(json_encode($content), true);
+            $msg = $content['message'] ?? $content['error'] ?? $content['cause'][0]['description'] ?? null;
+            if (!$msg) {
+                $msg = json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
 
-            if (is_array($content)) {
-                $msg = $content['message'] ?? $content['error'] ?? $content['cause'][0]['description'] ?? null;
-                if (!$msg) {
-                    $msg = json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                }
-                return "Erro API Mercado Pago: " . $msg;
-            }
-
-            if (is_string($content)) {
-                return "Erro API Mercado Pago: " . $content;
-            }
-
-            return "Erro API Mercado Pago: resposta inesperada.";
+            return "Erro API Mercado Pago: " . $msg;
         }
 
         return $e->getMessage();
@@ -187,28 +176,14 @@ class MercadoPago extends BasePaymentGateway
     protected function gerarCobrancaBoleto($id, $tipo)
     {
         $entity = $this->findEntity($id, $tipo);
-        $produtos = $tipo === PaymentGateway::PAYMENT_TYPE_OS
-            ? $this->ci->Os_model->getProdutos($id)
-            : $this->ci->vendas_model->getProdutos($id);
-        $servicos = $tipo === PaymentGateway::PAYMENT_TYPE_OS
-            ? $this->ci->Os_model->getServicos($id)
-            : [];
-        $desconto = [$tipo === PaymentGateway::PAYMENT_TYPE_OS
-            ? $this->ci->Os_model->getById($id)
-            : $this->ci->vendas_model->getById($id)];
-        $tipo_desconto = [$tipo === PaymentGateway::PAYMENT_TYPE_OS
-            ? $this->ci->Os_model->getById($id)
-            : $this->ci->vendas_model->getById($id)];
-
-        $totalProdutos = array_reduce($produtos, fn ($t, $i) => $t + ($i->preco * $i->quantidade), 0);
-        $totalServicos = array_reduce($servicos, fn ($t, $i) => $t + ($i->preco * $i->quantidade), 0);
-        $tipoDesconto = array_reduce($tipo_desconto, fn ($t, $i) => $i->tipo_desconto, 0);
-        $totalDesconto = array_reduce($desconto, fn ($t, $i) => $i->desconto, 0);
 
         if (empty($entity)) {
             throw new \Exception('OS ou venda não existe!');
         }
-        if (($totalProdutos + $totalServicos) <= 0) {
+
+        $valor = $this->valorDaCobranca($entity, $tipo);
+
+        if ($valor <= 0) {
             throw new \Exception('Valor inválido!');
         }
 
@@ -223,7 +198,7 @@ class MercadoPago extends BasePaymentGateway
         try {
             $client = new PaymentClient();
             $payment = $client->create([
-                "transaction_amount" => (float)$this->valorTotal($totalProdutos, $totalServicos, $totalDesconto, $tipoDesconto),
+                "transaction_amount" => $valor,
                 "description" => PaymentGateway::PAYMENT_TYPE_OS ? "OS #$id" : "Venda #$id",
                 "payment_method_id" => "bolbradesco",
                 "notification_url" => "https://seusite.com.br/mercadopago/retorno",
@@ -247,7 +222,7 @@ class MercadoPago extends BasePaymentGateway
                 ],
             ]);
         } catch (MPApiException $e) {
-            throw new \Exception($e->getApiResponse()->getContent());
+            throw new \Exception($this->mpErrorMessage($e));
         } catch (MPException $e) {
             throw new \Exception($e->getMessage());
         }
@@ -259,7 +234,7 @@ class MercadoPago extends BasePaymentGateway
             'expire_at' => $payment->date_of_expiration ?? $expirationDate,
             'charge_id' => $payment->id,
             'status' => $payment->status,
-            'total' => getMoneyAsCents($this->valorTotal($totalProdutos, $totalServicos, $totalDesconto, $tipoDesconto)),
+            'total' => getMoneyAsCents($valor),
             'clientes_id' => $entity->idClientes,
             'payment_method' => 'boleto',
             'payment_gateway' => 'MercadoPago',
@@ -286,16 +261,4 @@ class MercadoPago extends BasePaymentGateway
         throw new \Exception('Mercado Pago não suporta gerar link pela API, apenas pelo painel!');
     }
 
-    private function valorTotal($produtosValor, $servicosValor, $desconto, $tipo_desconto)
-    {
-        if ($tipo_desconto == 'porcento') {
-            $def_desconto = $desconto * ($produtosValor + $servicosValor) / 100;
-        } elseif ($tipo_desconto == 'real') {
-            $def_desconto = $desconto;
-        } else {
-            $def_desconto = 0;
-        }
-
-        return ($produtosValor + $servicosValor) - $def_desconto;
-    }
 }
