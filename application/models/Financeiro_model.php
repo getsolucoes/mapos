@@ -182,20 +182,26 @@ class Financeiro_model extends CI_Model
     }
 
     /**
-     * Receitas e despesas pagas de um ano, pelo mês do pagamento, com o mesmo
-     * líquido da listagem (na v4 o painel descontava só das receitas e
-     * calculava o desconto em % de novo). Linhas: mes (AAAA-MM), tipo, total.
-     * O painel monta os 12 meses com painelBalanco().
+     * Balanço anual pelo pagamento (somente baixados) ou vencimento (todos,
+     * inclusive pendentes e vencidos). Ambos usam o líquido da listagem v5.
+     * Linhas: mes (AAAA-MM), tipo, total; painelBalanco() completa os 12 meses.
      */
-    public function balancoAnual(int $ano): array
+    public function balancoAnual(int $ano, string $criterio = 'pagamento'): array
     {
-        return $this->db
-            ->select('SUBSTR(lancamentos.data_pagamento, 1, 7) AS mes, lancamentos.tipo', false)
+        // A coluna nunca vem diretamente da entrada do usuário.
+        $data = $criterio === 'vencimento' ? 'lancamentos.data_vencimento' : 'lancamentos.data_pagamento';
+        $this->db
+            ->select('SUBSTR(' . $data . ', 1, 7) AS mes, lancamentos.tipo', false)
             ->select('SUM(' . self::LIQUIDO . ') AS total', false)
-            ->from('lancamentos')
-            ->where('lancamentos.baixado', 1)
-            ->where('lancamentos.data_pagamento >=', $ano . '-01-01')
-            ->where('lancamentos.data_pagamento <=', $ano . '-12-31')
+            ->from('lancamentos');
+
+        if ($criterio !== 'vencimento') {
+            $this->db->where('lancamentos.baixado', 1);
+        }
+
+        return $this->db
+            ->where($data . ' >=', $ano . '-01-01')
+            ->where($data . ' <', ($ano + 1) . '-01-01')
             ->group_by(['mes', 'lancamentos.tipo'])
             ->get()
             ->result();

@@ -55,6 +55,14 @@ if (! function_exists('painelGrupoStatus')) {
     }
 }
 
+if (! function_exists('painelCriterioBalanco')) {
+    /** Critério do balanço (?criterio=); o padrão preserva o realizado da v5. */
+    function painelCriterioBalanco($valor): string
+    {
+        return $valor === 'vencimento' ? 'vencimento' : 'pagamento';
+    }
+}
+
 if (! function_exists('painelAno')) {
     /**
      * Ano do balanço (?ano=): de 2000 até o ano que vem. Fora disso, ou

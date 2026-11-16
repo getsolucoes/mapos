@@ -289,6 +289,22 @@ final class FinanceiroListagemTest extends MaposTestCase
         $this->assertSame('Faturado', $this->db->query('SELECT status FROM os WHERE idOs = 2')->row()->status);
     }
 
+    public function testCancelamentoDaOrigemNaoApagaLancamentoMasExclusaoDaFaturaSim(): void
+    {
+        $model = $this->model();
+        $this->db->query("UPDATE lancamentos SET data_pagamento = '2026-10-02' WHERE idLancamentos = 1");
+        $this->db->query("INSERT INTO vendas (lancamentos_id, faturado, status) VALUES (1, 1, 'Cancelado')");
+        $this->db->query("INSERT INTO os (lancamento, faturado, status) VALUES (1, 1, 'Cancelado')");
+        // Não existe status cancelado em lancamentos; não inferir a baixa
+        // ou exclusão financeira a partir do status comercial da origem.
+        $this->assertSame(750.0, painelBalanco($model->balancoAnual(2026), 2026)['receitas'][9]);
+        $this->assertSame(1050.0, painelBalanco($model->balancoAnual(2026, 'vencimento'), 2026)['receitas'][9]);
+        $this->assertTrue($model->excluir(1, 9));
+        $this->assertSame(0.0, painelBalanco($model->balancoAnual(2026), 2026)['receitas'][9]);
+        $this->assertSame(300.0, painelBalanco($model->balancoAnual(2026, 'vencimento'), 2026)['receitas'][9]);
+        $this->assertSame('Finalizado', $this->db->query('SELECT status FROM os')->row()->status);
+    }
+
     public function testExcluirLancamentoInexistenteNaoMudaNada(): void
     {
         $model = $this->model();

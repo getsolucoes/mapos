@@ -39,17 +39,17 @@ $contagemAbaCor = [
 ];
 $contagemAbaClasse = static fn (string $variante): string => 'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-5 tabular-nums ' . ($contagemAbaCor[$variante] ?? $contagemAbaCor['neutral']);
 
-// Tendência e sparkline do "Saldo do mês": só quando a série do ano (balanço)
-// está disponível e é o ano atual.
+// O saldo do mês, sua tendência e sparkline sempre seguem pagamentos,
+// independentemente do ano e critério escolhidos no balanço.
 $saldoTrend = null;
 $saldoSpark = null;
-if ($pode['lancamentos'] && $pode['balanco'] && isset($balanco['saldo'], $ano) && (int) $ano === (int) date('Y')) {
+if ($pode['lancamentos'] && $pode['balanco'] && isset($saldo_pagamentos)) {
     $idxMes = (int) date('n') - 1;
     $inicioMes = max(0, $idxMes - 5);
-    $trechoSaldo = array_slice($balanco['saldo'], $inicioMes, $idxMes - $inicioMes + 1);
+    $trechoSaldo = array_slice($saldo_pagamentos, $inicioMes, $idxMes - $inicioMes + 1);
     $saldoSpark = count($trechoSaldo) >= 2 ? $trechoSaldo : null;
     if ($idxMes > 0) {
-        $saldoTrend = tendenciaKpi($mes['saldo'], $balanco['saldo'][$idxMes - 1], true, 'vs. mês anterior');
+        $saldoTrend = tendenciaKpi($mes['saldo'], $saldo_pagamentos[$idxMes - 1], true, 'vs. mês anterior');
     }
 }
 
@@ -191,14 +191,17 @@ if ($pode['os']) {
         </div>
     <?php } ?>
 
-    <?php if ($pode['balanco']) { ?>
+    <?php if ($pode['balanco']) {
+        $porVencimento = ($criterio ?? 'pagamento') === 'vencimento';
+        $tituloBalanco = 'Balanço de ' . $ano . ($porVencimento ? ' por vencimento' : ' por pagamento');
+        ?>
         <section class="<?= e($caixa) ?> min-w-0" aria-labelledby="titulo-balanco">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 id="titulo-balanco" class="text-heading-sm text-text"><?= e('Balanço de ' . $ano) ?></h2>
-                    <p class="text-caption text-muted">Receitas e despesas pagas, pelo mês do pagamento.</p>
+                    <h2 id="titulo-balanco" class="text-heading-sm text-text"><?= e($tituloBalanco) ?></h2>
+                    <p class="text-caption text-muted"><?= e($porVencimento ? 'Receitas e despesas pelo vencimento, incluindo pagos, pendentes e vencidos. Não representa o caixa realizado.' : 'Receitas e despesas pagas, pelo mês do pagamento.') ?> Valores líquidos, com descontos.</p>
                 </div>
-                <form method="get" action="<?= e(site_url('mapos')) ?>" class="flex items-end gap-2">
+                <form method="get" action="<?= e(site_url('mapos')) ?>" class="flex flex-wrap items-end gap-2">
                     <div class="w-32">
                         <?= component('select', [
                             'name' => 'ano',
@@ -208,18 +211,27 @@ if ($pode['os']) {
                             'selected' => (string) $ano,
                         ]) ?>
                     </div>
+                    <div>
+                        <?= component('select', [
+                            'name' => 'criterio',
+                            'id' => 'balanco-criterio',
+                            'label' => 'Visão financeira',
+                            'options' => ['pagamento' => 'Pagamento (realizado)', 'vencimento' => 'Vencimento (pagos e pendentes)'],
+                            'selected' => $porVencimento ? 'vencimento' : 'pagamento',
+                        ]) ?>
+                    </div>
                     <?= component('button', ['label' => 'Ver', 'variant' => 'outline', 'type' => 'submit']) ?>
                 </form>
             </div>
             <?php if (array_sum($balanco['receitas']) + array_sum($balanco['despesas']) == 0) { ?>
-                <?= component('empty-state', ['title' => 'Nada pago em ' . $ano, 'message' => 'Os lançamentos pagos do ano aparecem aqui, mês a mês.', 'icon' => 'chart-column', 'class' => 'border-0']) ?>
+                <?= component('empty-state', ['title' => ($porVencimento ? 'Nenhum vencimento em ' : 'Nada pago em ') . $ano, 'message' => $porVencimento ? 'Os lançamentos com vencimento no ano aparecem aqui, pagos ou pendentes.' : 'Os lançamentos pagos do ano aparecem aqui, mês a mês.', 'icon' => 'chart-column', 'class' => 'border-0']) ?>
             <?php } else { ?>
                 <div class="relative mt-4 h-72" data-valor-grafico>
-                    <canvas data-grafico="balanco" role="img" aria-label="<?= e('Gráfico do balanço de ' . $ano) ?>"></canvas>
+                    <canvas data-grafico="balanco" role="img" aria-label="<?= e('Gráfico: ' . $tituloBalanco) ?>"></canvas>
                 </div>
                 <p class="painel-valores-aviso mt-4 h-72 items-center justify-center text-caption text-muted">Valores ocultos.</p>
                 <div class="sr-only"><table>
-                    <caption><?= e('Balanço de ' . $ano) ?></caption>
+                    <caption><?= e($tituloBalanco) ?></caption>
                     <thead><tr><th scope="col">Mês</th><th scope="col">Receitas</th><th scope="col">Despesas</th><th scope="col">Saldo</th></tr></thead>
                     <tbody>
                         <?php foreach ($balanco['meses'] as $i => $mesNome) { ?>

@@ -75,6 +75,7 @@ class Mapos extends MY_Controller
 
         if ($pode['lancamentos']) {
             $mesAtual = painelBalanco($this->financeiro_model->balancoAnual($anoAtual), $anoAtual);
+            $painel['saldo_pagamentos'] = $mesAtual['saldo'];
             $indice = (int) date('n') - 1;
             $painel['mes'] = ['receitas' => $mesAtual['receitas'][$indice], 'despesas' => $mesAtual['despesas'][$indice], 'saldo' => $mesAtual['saldo'][$indice]];
             $painel['visao_geral'] = $this->financeiro_model->visaoGeral();
@@ -83,9 +84,11 @@ class Mapos extends MY_Controller
 
         if ($pode['balanco']) {
             $ano = painelAno($this->input->get('ano'), $anoAtual);
+            $criterio = painelCriterioBalanco($this->input->get('criterio'));
+            $painel['criterio'] = $criterio;
             $painel['ano'] = $ano;
             $painel['anos'] = range($anoAtual + 1, max(2000, $anoAtual - 5));
-            $painel['balanco'] = painelBalanco($this->financeiro_model->balancoAnual($ano), $ano);
+            $painel['balanco'] = painelBalanco($this->financeiro_model->balancoAnual($ano, $criterio), $ano);
         }
 
         if ($pode['produtos']) {

@@ -265,6 +265,62 @@ final class PainelTest extends MaposTestCase
         $this->assertSame(190.0, array_sum($balanco['receitas']), 'Pendente e ano passado não entram.');
     }
 
+    public function testCriterioDoBalancoAceitaSomenteVencimentoOuPagamento(): void
+    {
+        $this->assertSame('vencimento', painelCriterioBalanco('vencimento'));
+        foreach (['pagamento', '', null, ['vencimento'], 'data_vencimento', "vencimento' OR 1=1"] as $valor) {
+            $this->assertSame('pagamento', painelCriterioBalanco($valor));
+        }
+    }
+
+    public function testVencimentoIncluiPagosPendentesEVencidosComLiquido(): void
+    {
+        $this->banco();
+        $balanco = painelBalanco($this->financeiro()->balancoAnual(2026, 'vencimento'), 2026);
+        $this->assertSame(190.0, $balanco['receitas'][0]);
+        $this->assertSame(25.0, $balanco['despesas'][0], 'Despesa também usa líquido da v5.');
+        $this->assertSame(20.0, $balanco['despesas'][1], 'Vencido com baixado NULL continua previsto.');
+        $this->assertSame(50.0, $balanco['receitas'][10], 'Pendente com baixado zero entra.');
+        $this->assertSame(240.0, array_sum($balanco['receitas']));
+        $this->assertSame(45.0, array_sum($balanco['despesas']));
+        $this->assertSame(0.0, $balanco['saldo'][11]);
+    }
+
+    public function testCadaVisaoUsaSuaDataInclusiveNaViradaDoAnoEBissexto(): void
+    {
+        $this->banco();
+        $this->db->query('DELETE FROM lancamentos');
+        $this->db->query("INSERT INTO lancamentos (tipo, data_vencimento, data_pagamento, baixado, valor, desconto, valor_desconto) VALUES
+            ('receita', '2025-12-31', '2026-01-01', 1, 100, 10, 90),
+            ('despesa', '2026-12-31', '2027-01-01', 1, 40, 5, 0),
+            ('receita', '2026-01-01', '2026-02-01', 1, 20, NULL, NULL),
+            ('receita', '2024-02-29', NULL, 0, 10, 0, 0),
+            ('receita', NULL, NULL, 0, 999, 0, 0)");
+        $model = $this->financeiro();
+        $pago = painelBalanco($model->balancoAnual(2026), 2026);
+        $previsto = painelBalanco($model->balancoAnual(2026, 'vencimento'), 2026);
+        $this->assertSame(90.0, $pago['receitas'][0]);
+        $this->assertSame(20.0, $pago['receitas'][1]);
+        $this->assertSame(0.0, array_sum($pago['despesas']));
+        $this->assertSame(20.0, $previsto['receitas'][0]);
+        $this->assertSame(35.0, $previsto['despesas'][11]);
+        $this->assertSame(20.0, array_sum($previsto['receitas']));
+        $this->assertSame(10.0, painelBalanco($model->balancoAnual(2024, 'vencimento'), 2024)['receitas'][1]);
+        $this->assertSame([], $model->balancoAnual(2024));
+        $this->assertSame([], $model->balancoAnual(2028, 'vencimento'));
+        $this->assertEquals($model->balancoAnual(2026), $model->balancoAnual(2026, "vencimento' OR 1=1"));
+    }
+
+    public function testDesfazerBaixaRemoveDoRealizadoMasPreservaVencimento(): void
+    {
+        $this->banco();
+        $model = $this->financeiro();
+        $antes = $model->balancoAnual(2026, 'vencimento');
+        $this->assertTrue($model->atualizar(1, ['baixado' => 0, 'data_pagamento' => null]));
+        $this->assertEquals($antes, $model->balancoAnual(2026, 'vencimento'));
+        $this->assertSame(90.0, painelBalanco($model->balancoAnual(2026), 2026)['receitas'][0]);
+    }
+
     public function testProximosPendentesDoVencimentoMaisRecente(): void
     {
         $this->banco();
@@ -371,6 +427,48 @@ final class PainelTest extends MaposTestCase
         $this->assertStringContainsString('produtos?estoque=baixo', $html);
         $this->assertStringNotContainsString('bx-', $html);
         $this->assertStringNotContainsString(' style=', $html);
+    }
+
+    public function testVisoesDoBalancoRotulosSelecaoEEstadoVazio(): void
+    {
+        $dados = $this->dadosCompletos();
+        $html = $this->renderizar($dados);
+        $this->assertStringContainsString('Balanço de 2026 por pagamento', $html);
+        $this->assertStringContainsString('value="pagamento" selected', $html);
+        $dados['criterio'] = 'vencimento';
+        $html = $this->renderizar($dados);
+        $this->assertStringContainsString('Balanço de 2026 por vencimento', $html);
+        $this->assertStringContainsString('value="vencimento" selected', $html);
+        $this->assertSame(1, substr_count($html, 'id="balanco-criterio"'));
+        $this->assertStringContainsString('incluindo pagos, pendentes e vencidos', $html);
+        $this->assertStringContainsString('R$ 60,00', $html);
+        $this->assertStringContainsString('data-valor-grafico', $html);
+        $dados['balanco'] = painelBalanco([], 2026);
+        $this->assertStringContainsString('Nenhum vencimento em 2026', $this->renderizar($dados));
+        $dados['criterio'] = 'pagamento';
+        $this->assertStringContainsString('Nada pago em 2026', $this->renderizar($dados));
+    }
+
+    public function testSaldoETendenciaIndependemDaVisaoEDoAnoDoBalanco(): void
+    {
+        $dados = $this->dadosCompletos();
+        $dados['saldo_pagamentos'] = array_fill(0, 12, 60.0);
+        $html = $this->renderizar($dados);
+        $dados['criterio'] = 'vencimento';
+        $dados['ano'] = 2025;
+        $dados['balanco'] = painelBalanco([], 2025);
+        $outro = $this->renderizar($dados);
+        // Compara o card renderizado inteiro: valor, tendência e sparkline.
+        $xpath = static function (string $html): string {
+            $dom = new DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+            $node = new DOMXPath($dom);
+            $card = $node->query('//a[contains(@href, "financeiro/lancamentos?periodo=mes")]')->item(0);
+
+            return $dom->saveHTML($card);
+        };
+        $this->assertStringContainsString('Saldo do mês', $xpath($html));
+        $this->assertSame($xpath($html), $xpath($outro));
     }
 
     public function testCardsAbremAListagemJaFiltrada(): void
